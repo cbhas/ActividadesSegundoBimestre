@@ -1,7 +1,11 @@
 import cats.*
 import cats.implicits.*
 import com.github.tototoshi.csv.{CSVReader, DefaultCSVFormat}
-
+import com.github.tototoshi.csv.*
+import org.nspl.{data, *}
+import org.nspl.awtrenderer.*
+import org.nspl.data.HistogramData
+import org.saddle.{Index, Series, Vec}
 import java.io.File
 
 implicit object CustomFormat extends DefaultCSVFormat {
@@ -123,5 +127,98 @@ object Exporter
 
     players.foreach(println)
     println(players.size)
+
+  @main
+  def exportarImagenes(): Unit =
+    val path2DataFile1: String = "excel's\\tablaPartidosYGoles.csv"
+    val path2DataFile2: String = "excel's\\tablaAlineacionesXTorneo.csv"
+
+    val reader1: CSVReader = CSVReader.open(new File(path2DataFile1))
+    val reader2: CSVReader = CSVReader.open(new File(path2DataFile2))
+
+    val contentFile1: List[Map[String, String]] = reader1.allWithHeaders()
+    val contentFile2: List[Map[String, String]] = reader2.allWithHeaders()
+
+    reader1.close()
+    reader2.close()
+
+    charting(contentFile1)
+
+    def charting(data: List[Map[String, String]]): Unit =
+      val listNroShirt: List[Double] = data
+        .filter(row => row("squads_position_name") == "defender" && row("squads_shirt_number") != "0")
+        .map(row => row("squads_shirt_number").toDouble)
+
+      val histForwardShirtNumber = xyplot(HistogramData(listNroShirt, 10) -> bar())(
+        par
+          .xlab("Numero Camiste")
+          .ylab("Frecuencia")
+          .main("Numero de Camiseta de los Defensas")
+      )
+
+      pngToFile(new File("graficas\\numero-camisetas-defensas.png"), histForwardShirtNumber.build, 1000)
+      renderToByteArray(histForwardShirtNumber.build, width = 2000)
+
+//    minutosGoles(contentFile1)
+//
+//    def minutosGoles(data: List[Map[String, String]]): Unit =
+//      val listaMinutos: List[Double] = data
+//        .filter(row => row("goals_minute_regulation") != "NA")
+//        .map(row => row("goals_minute_regulation").toDouble)
+//
+//      val histFrecGoles = xyplot(HistogramData(listaMinutos, 20) -> bar())(
+//        par
+//          .xlab("Minutos")
+//          .ylab("Frecuencia.")
+//          .main("Goles por minuto"),
+//      )
+//      pngToFile(new File("graficas\\goles.png"), histFrecGoles.build, 1000)
+//      renderToByteArray(histFrecGoles.build, width = 2000)
+//
+//    def datosGrafica(data: List[Map[String, String]]): List[(String, Int)] =
+//      val dataGoles = data
+//        .filter(_("tournaments_tournament_name").contains("Men"))
+//        .map(row => (
+//          row("tournaments_tournament_name"),
+//          row("matches_match_id"),
+//          row("matches_home_team_score"),
+//          row("matches_away_team_score")
+//        ))
+//        .distinct
+//        .map(t4 => (t4._1, t4._3.toInt + t4._4.toInt))
+//        .groupBy(_._1)
+//        .map(t2 => (t2._1, t2._2.map(_._2).sum))
+//        .toList
+//        .sortBy(_._1)
+//      dataGoles
+//
+//    val datos = datosGrafica(contentFile1)
+//
+//    chartBarPlot(datos)
+//
+//    def chartBarPlot(data: List[(String, Int)]): Unit =
+//      val data4Chart: List[(String, Double)] = data
+//        .map(t2 => (t2._1, t2._2.toDouble))
+//      val indices = Index(data4Chart.map(value => value._1.substring(0, 4)).toArray)
+//      val values = Vec(data4Chart.map(value => value._2).toArray)
+//
+//      val series = Series(indices, values)
+//
+//      val bar1 = saddle.barplotHorizontal(series,
+//        xLabFontSize = Option(RelFontSize(1)),
+//        color = RedBlue(70, 171))(
+//        par
+//          .xLabelRotation(-77)
+//          .xNumTicks(0)
+//          .xlab("Torneos")
+//          .ylab("Goles")
+//          .main("Goles por torneo")
+//
+//      )
+//      pngToFile(new File("graficas\\graficoMen.png"), bar1.build, 1000)
+//
+//
+//      case class Actor(id: Int, name: String, lastname: String)
+//      case class Film(id: Int, title: String, releaseYear: Int, actorlist: String)
 
 // Carlos "cdm18" Mejía & Sebastián "cbhas" Calderón

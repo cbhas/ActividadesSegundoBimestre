@@ -1,11 +1,14 @@
 import com.github.tototoshi.csv.*
 import java.io.File
+import org.nspl.*
+import org.nspl.awtrenderer.*
+
 
 implicit object CustomFormat extends DefaultCSVFormat {
   override val delimiter: Char = ';'
 }
 
-object Exporter
+object Exporter {
   @main
   def generateStatistics(): Unit =
     val path2DataFile1: String = "excel's\\tablaPartidosYGoles.csv"
@@ -21,6 +24,8 @@ object Exporter
     reader2.close()
 
     calculateGoalsStats(contentFile1)
+    playerPositionFrequency(contentFile2)
+    ownGoalsStats(contentFile1)
 
     // Mínimo, Promedio y Máximo de goles por partido:
     def calculateGoalsStats(matches: List[Map[String, String]]): Unit = {
@@ -34,4 +39,25 @@ object Exporter
       println(s"Máximo de goles por partido: $maxGoals \n")
     }
 
-// Sebastián "cbhas" Calderón
+    // Frecuencia de posiciones de los jugadores:
+    def playerPositionFrequency(alignments: List[Map[String, String]]): Unit = {
+      val positions: List[String] = alignments.map(align => align("squads_position_name"))
+      val positionCounts: Map[String, Int] = positions.groupBy(identity).map(entry => (entry._1, entry._2.size))
+
+      positionCounts.foreach { case (position, count) =>
+        println(s"Frecuencia de $position: $count")
+      }
+      println()
+    }
+
+    // Estadísticas sobre goles en propia:
+    def ownGoalsStats(goals: List[Map[String, String]]): Unit = {
+      val ownGoals: Int = goals.count(goal => goal("goals_own_goal") == "1")
+      val totalGoals: Int = goals.length
+      val ownGoalsPercentage: Double = (ownGoals.toDouble / totalGoals) * 100
+
+      println(s"Número de goles propios: $ownGoals")
+      println(s"Porcentaje de goles propios: $ownGoalsPercentage%")
+    }
+
+}
