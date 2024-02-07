@@ -287,9 +287,11 @@ object proyectoIntegrador {
           .main("Numero de Camiseta de los Defensas")
       )
 
+      val file = "numero-camisetas-defensas.png"
+
       pngToFile(new File("graficas\\numero-camisetas-defensas.png"), frequencyHistogram.build, 1000)
       renderToByteArray(frequencyHistogram.build, width = 2000)
-      println("Imagen (numero-camisetas-defensas.png) creada con éxito!!")
+      println(s"Imagen ($file) creada con éxito!")
 
     def goalsMinute(data: List[Map[String, String]]): Unit =
       val goalsMinute: List[Double] = data
@@ -303,9 +305,11 @@ object proyectoIntegrador {
           .main("Goles por Minuto"),
       )
 
+      val file = "graficas/goles-minuto.png"
+
       pngToFile(new File("graficas/goles-minuto.png"), frequencyHistogram.build, 1000)
       renderToByteArray(frequencyHistogram.build, width = 2000)
-      println("Imagen (graficas/goles-minuto.png) creada con éxito!!")
+      println(s"Imagen ($file) creada con éxito!")
 
     def stadiumCapacity(data: List[Map[String, String]]): Unit =
       val stadiumCapacity: List[Double] = data
@@ -319,9 +323,11 @@ object proyectoIntegrador {
           .main("Capacidad de Estadios")
       )
 
-      pngToFile(new File("graficas\\capacidad_estadios.png"), frequencyHistogram.build, 1000)
+      val file = "graficas/capacidad-estadios.png"
+
+      pngToFile(new File(file), frequencyHistogram.build, 1000)
       renderToByteArray(frequencyHistogram.build, width = 2000)
-      println("Imagen (capacidad_estadios.png) creada con éxito!!")
+      println(s"Imagen ($file) creada con éxito!")
 
 }
 
