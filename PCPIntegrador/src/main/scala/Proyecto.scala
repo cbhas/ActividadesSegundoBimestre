@@ -86,7 +86,7 @@ object proyectoIntegrador {
 
       val primerCampeonSudamericano = winners
         .filter((pais, id) => countriesLatamWorldCup.contains(pais)).head._1
-      print(s"El primer país Latinoamericano en ganar un mundial, fué: ${primerCampeonSudamericano}")s
+      print(s"El primer país Latinoamericano en ganar un mundial, fué: ${primerCampeonSudamericano}")
 
 
   @main
