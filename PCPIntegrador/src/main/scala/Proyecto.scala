@@ -33,11 +33,11 @@ object proyectoIntegrador {
     calculateGoalsStats(contentFile1)
     playerPositionFrequency(contentFile2)
     ownGoalsStats(contentFile1)
-    winnerEcuadorVsBrazil(contentFile1)
+    winnerEcuadorvsBrazil(contentFile1)
     firstLatamCountryWin(contentFile1)
 
-    def calculateGoalsStats(matches: List[Map[String, String]]): Unit =
-      val goalsPerMatch: List[Int] = matches.map(s => s("matches_home_team_score").toInt + s("matches_away_team_score").toInt)
+    def calculateGoalsStats(data: List[Map[String, String]]): Unit =
+      val goalsPerMatch: List[Int] = data.map(row => row("matches_home_team_score").toInt + row("matches_away_team_score").toInt)
       val minGoals: Int = goalsPerMatch.min
       val avgGoals: Double = goalsPerMatch.sum.toDouble / goalsPerMatch.length
       val maxGoals: Int = goalsPerMatch.max
@@ -47,17 +47,17 @@ object proyectoIntegrador {
       println(s"Máximo de goles por partido: $maxGoals \n")
 
 
-    def playerPositionFrequency(alignments: List[Map[String, String]]): Unit =
-      val positions: List[String] = alignments.map(row => row("squads_position_name"))
+    def playerPositionFrequency(data: List[Map[String, String]]): Unit =
+      val positions: List[String] = data.map(row => row("squads_position_name"))
       val positionCounts: Map[String, Int] = positions.groupBy(identity).map(t => (t._1, t._2.size))
 
       positionCounts.foreach((position, count) => println(s"Frecuencia de $position: $count"))
       println()
 
 
-    def ownGoalsStats(goals: List[Map[String, String]]): Unit =
-      val ownGoals: Int = goals.count(goal => goal("goals_own_goal") == "1")
-      val totalGoals: Int = goals.length
+    def ownGoalsStats(data: List[Map[String, String]]): Unit =
+      val ownGoals: Int = data.count(row => row("goals_own_goal") == "1")
+      val totalGoals: Int = data.length
       val ownGoalsPercentage: Double = (ownGoals.toDouble / totalGoals) * 100
 
       println(s"Número de goles marcados en propia: $ownGoals")
@@ -65,7 +65,7 @@ object proyectoIntegrador {
       println()
 
 
-    def winnerEcuadorVsBrazil(data: List[Map[String, String]]): Unit =
+    def winnerEcuadorvsBrazil(data: List[Map[String, String]]): Unit =
       val winnings = data
         .filter(row =>
           (row("away_team_name") == "Ecuador" || row("home_team_name") == "Ecuador") &&
@@ -128,11 +128,11 @@ object proyectoIntegrador {
       else
         text.toDouble
 
-    def notAvailable(text: String): String =
-      if(text.equals("not available"))
+    def notAvailable(date: String): String =
+      if(date.equals("not available"))
         "1970-1-1"
       else
-        text
+        date
 
     def generateGoals(data: List[Map[String, String]]): Unit =
       val sqlInsert: String = s"INSERT INTO goals VALUES('%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', %d);"
@@ -349,9 +349,9 @@ object proyectoIntegrador {
 
       def charBarPlotStadiumsMasher(data: List[(String, Int)]): Unit =
         val data4Chart: List[(String, Double)] = data.map(t2 => (t2._1, t2._2.toDouble))
-        val indices = Index(data4Chart.map(_._1).toArray)
-        val values = Vec(data4Chart.map(_._2).toArray)
-        val series = Series(indices, values)
+        val indices: Index[String] = Index(data4Chart.map(_._1).toArray)
+        val values: Vec[Double] = Vec(data4Chart.map(_._2).toArray)
+        val series: Series[String, Double] = Series(indices, values)
 
         val bar1 = saddle.barplotHorizontal(series, xLabFontSize = Option(RelFontSize(1)),
           color = RedBlue(9, 15))(
@@ -362,7 +362,7 @@ object proyectoIntegrador {
             .ylab("Numero de Partidos")
             .main("Estadios más Jugados"))
 
-        val url = "graficas/estadio-donde-mas-se-jugo.png"
+        val url: String = "graficas/estadio-donde-mas-se-jugo.png"
 
         pngToFile(new File(url), bar1.build, 1000)
         println(s"Imagen ($url) creada con éxito!")
@@ -384,7 +384,7 @@ object proyectoIntegrador {
 
       def charBarPlotTeamMoreWins(data: List[(String, Int)]): Unit =
         val data4Chart: List[(String, Double)] = data.map(t2 => (t2._1, t2._2.toDouble))
-        val series = Series(Index(data4Chart.map(_._1).toArray), Vec(data4Chart.map(_._2).toArray))
+        val series: Series[String, Double] = Series(Index(data4Chart.map(_._1).toArray), Vec(data4Chart.map(_._2).toArray))
 
         val bar1 = saddle.barplotHorizontal(series, xLabFontSize = Option(RelFontSize(1)),
           color = RedBlue(40, 90))(
@@ -395,7 +395,7 @@ object proyectoIntegrador {
             .ylab("Numero de Victorias")
             .main("Equipos con más Victorias"))
 
-        val url = "graficas/equipo-mas-victorias.png"
+        val url: String = "graficas/equipo-mas-victorias.png"
 
         pngToFile(new File(url), bar1.build, 1000)
         println(s"Imagen ($url) creada con éxito!")
@@ -420,7 +420,7 @@ object proyectoIntegrador {
 
       def charBarPlotTopScorer(data:List[(String, Int)]): Unit =
         val data4Chart: List[(String, Double)] = data.map(t2 => (t2._1, t2._2.toDouble))
-        val series = Series(Index(data4Chart.map(_._1).toArray),
+        val series: Series[String, Double] = Series(Index(data4Chart.map(_._1).toArray),
           Vec(data4Chart.map(_._2).toArray))
 
         val bar1 = saddle.barplotHorizontal(series,
@@ -433,7 +433,7 @@ object proyectoIntegrador {
             .main("Maximos Goleadores")
           )
 
-        val url = "graficas/maximo-goleador.png"
+        val url: String = "graficas/maximo-goleador.png"
 
         pngToFile(new File(url), bar1.build, 1000)
         println(s"Imagen ($url) creada con éxito!")
