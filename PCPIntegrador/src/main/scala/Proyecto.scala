@@ -9,6 +9,7 @@ import cats.effect.*
 import doobie.Transactor
 import scala.collection.immutable.List
 import cats.effect.unsafe.implicits.global
+import org.saddle.{Index, Series, Vec}
 
 implicit object CustomFormat extends DefaultCSVFormat {
   override val delimiter: Char = ';'
@@ -87,7 +88,6 @@ object proyectoIntegrador {
       val primerCampeonSudamericano = winners
         .filter((pais, id) => countriesLatamWorldCup.contains(pais)).head._1
       print(s"El primer país Latinoamericano en ganar un mundial, fué: ${primerCampeonSudamericano}")
-
 
   @main
   def generateScripts(): Unit =
@@ -256,9 +256,16 @@ object proyectoIntegrador {
 
       tournamentsTuple
 
-
   @main
   def generateGraphics(): Unit =
+    val xa = Transactor.fromDriverManager[IO](
+      driver = "com.mysql.cj.jdbc.Driver",
+      url = "jdbc:mysql://localhost:3306/practicum",
+      user = "root",
+      password = "cbhas123",
+      logHandler = None
+    )
+
     val path3DataFile1 = "excel's\\tablaPartidosYGoles.csv"
     val path3DataFile2 = "excel's\\tablaAlineacionesXTorneo.csv"
 
@@ -287,11 +294,11 @@ object proyectoIntegrador {
           .main("Numero de Camiseta de los Defensas")
       )
 
-      val file = "numero-camisetas-defensas.png"
+      val url = "graficas/numero-camisetas-defensas.png"
 
-      pngToFile(new File("graficas\\numero-camisetas-defensas.png"), frequencyHistogram.build, 1000)
+      pngToFile(new File(url), frequencyHistogram.build, 1000)
       renderToByteArray(frequencyHistogram.build, width = 2000)
-      println(s"Imagen ($file) creada con éxito!")
+      println(s"Imagen ($url) creada con éxito!")
 
     def goalsMinute(data: List[Map[String, String]]): Unit =
       val goalsMinute: List[Double] = data
@@ -305,11 +312,11 @@ object proyectoIntegrador {
           .main("Goles por Minuto"),
       )
 
-      val file = "graficas/goles-minuto.png"
+      val url = "graficas/goles-minuto.png"
 
-      pngToFile(new File("graficas/goles-minuto.png"), frequencyHistogram.build, 1000)
+      pngToFile(new File(url), frequencyHistogram.build, 1000)
       renderToByteArray(frequencyHistogram.build, width = 2000)
-      println(s"Imagen ($file) creada con éxito!")
+      println(s"Imagen ($url) creada con éxito!")
 
     def stadiumCapacity(data: List[Map[String, String]]): Unit =
       val stadiumCapacity: List[Double] = data
@@ -323,12 +330,116 @@ object proyectoIntegrador {
           .main("Capacidad de Estadios")
       )
 
-      val file = "graficas/capacidad-estadios.png"
+      val url = "graficas/capacidad-estadios.png"
 
-      pngToFile(new File(file), frequencyHistogram.build, 1000)
+      pngToFile(new File(url), frequencyHistogram.build, 1000)
       renderToByteArray(frequencyHistogram.build, width = 2000)
-      println(s"Imagen ($file) creada con éxito!")
+      println(s"Imagen ($url) creada con éxito!")
 
+    val queryStadiumsMasher= sql"""
+        SELECT s.stadium_name, s.stadium_city_name, COUNT(*) AS num_matches
+        FROM matches m
+        INNER JOIN stadiums s ON m.stadium_id = s.stadium_id
+        GROUP BY m.stadium_id, s.stadium_name, s.stadium_city_name
+        ORDER BY num_matches DESC
+        LIMIT 6;
+      """.query[(String, String, Int)]
+
+      val dataConsultaEstadios: List[(String, String, Int)] = queryStadiumsMasher.to[List].transact(xa).unsafeRunSync()
+
+      def charBarPlotStadiumsMasher(data: List[(String, Int)]): Unit =
+        val data4Chart: List[(String, Double)] = data.map(t2 => (t2._1, t2._2.toDouble))
+        val indices = Index(data4Chart.map(_._1).toArray)
+        val values = Vec(data4Chart.map(_._2).toArray)
+        val series = Series(indices, values)
+
+        val bar1 = saddle.barplotHorizontal(series, xLabFontSize = Option(RelFontSize(1)),
+          color = RedBlue(9, 15))(
+          par
+            .xLabelRotation(-77)
+            .xNumTicks(0)
+            .xlab("Estadios")
+            .ylab("Numero de Partidos")
+            .main("Estadios más Jugados"))
+
+        val url = "graficas/estadio-donde-mas-se-jugo.png"
+
+        pngToFile(new File(url), bar1.build, 1000)
+        println(s"Imagen ($url) creada con éxito!")
+
+    charBarPlotStadiumsMasher(dataConsultaEstadios.map(t3 => (t3._1, t3._3)))
+
+      val queryTeamMoreWins = sql"""
+        SELECT t.away_team_name AS equipo,
+               COUNT(CASE WHEN m.matches_result = 'home team win' AND m.home_team_id = t.team_id THEN 1 END) +
+               COUNT(CASE WHEN m.matches_result = 'away team win' AND m.away_team_id = t.team_id THEN 1 END) AS victorias
+        FROM teams t
+        INNER JOIN matches m ON m.home_team_id = t.team_id OR m.away_team_id = t.team_id
+        GROUP BY t.away_team_name
+        ORDER BY victorias desc
+        LIMIT 5;
+      """.query[(String, Int)]
+
+      val dataEquipoVictorias: List[(String, Int)] = queryTeamMoreWins.to[List].transact(xa).unsafeRunSync()
+
+      def charBarPlotTeamMoreWins(data: List[(String, Int)]): Unit =
+        val data4Chart: List[(String, Double)] = data.map(t2 => (t2._1, t2._2.toDouble))
+        val series = Series(Index(data4Chart.map(_._1).toArray), Vec(data4Chart.map(_._2).toArray))
+
+        val bar1 = saddle.barplotHorizontal(series, xLabFontSize = Option(RelFontSize(1)),
+          color = RedBlue(40, 90))(
+          par
+            .xLabelRotation(-77)
+            .xNumTicks(0)
+            .xlab("Equipos")
+            .ylab("Numero de Victorias")
+            .main("Equipos con más Victorias"))
+
+        val url = "graficas/equipo-mas-victorias.png"
+
+        pngToFile(new File(url), bar1.build, 1000)
+        println(s"Imagen ($url) creada con éxito!")
+
+    charBarPlotTeamMoreWins(dataEquipoVictorias)
+
+      val queryTopScorer = sql"""
+        SELECT
+          p.players_given_name,
+          p.players_family_name,
+          COUNT(g.goals_own_goal) AS goles
+        FROM players p
+        INNER JOIN goals g
+          ON g.player_id = p.player_id
+        GROUP BY
+          g.player_id
+        ORDER BY goles DESC
+        LIMIT 8;
+      """.query[(String, String, Int)]
+
+      val dataMaxGoleador: List[(String, String, Int)] = queryTopScorer.to[List].transact(xa).unsafeRunSync()
+
+      def charBarPlotTopScorer(data:List[(String, Int)]): Unit =
+        val data4Chart: List[(String, Double)] = data.map(t2 => (t2._1, t2._2.toDouble))
+        val series = Series(Index(data4Chart.map(_._1).toArray),
+          Vec(data4Chart.map(_._2).toArray))
+
+        val bar1 = saddle.barplotHorizontal(series,
+          xLabFontSize = Option(RelFontSize(1)),
+          color = RedBlue(11, 13))(
+          par.xLabelRotation(-77)
+            .xNumTicks(0)
+            .xlab("Jugadores")
+            .ylab("Numero de Goles")
+            .main("Maximos Goleadores")
+          )
+
+        val url = "graficas/maximo-goleador.png"
+
+        pngToFile(new File(url), bar1.build, 1000)
+        println(s"Imagen ($url) creada con éxito!")
+
+    charBarPlotTopScorer(dataMaxGoleador.map(t3 => (t3._2, t3._3)))
+    
 }
 
 // Carlos "cdm18" Mejía & Sebastián "cbhas" Calderón
